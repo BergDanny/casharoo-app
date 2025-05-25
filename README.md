@@ -1,6 +1,6 @@
 # casharoo_app
 
-A new Flutter project.
+Cahsaroo Project
 
 ## Getting Started
 
