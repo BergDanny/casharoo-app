@@ -15,78 +15,35 @@ class _HomePageState extends State<HomePage> {
       child: SafeArea(
         child: Column(
           children: [
+            // Income & Expense Section
             Padding(
               padding: const EdgeInsets.all(16),
-              child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                    color: Colors.grey,
-                    borderRadius: BorderRadius.circular(16)),
-                child: Column(
-                  children: [
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(8)),
-                          child: Icon(Icons.download, color: Colors.green),
-                        ),
-                        const SizedBox(width: 15),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              "Income",
-                              style: GoogleFonts.montserrat(
-                                  color: Colors.white,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold),
-                            ),
-                            const SizedBox(height: 10),
-                            Text("RM5000.00",
-                                style: GoogleFonts.montserrat(
-                                    color: Colors.white, fontSize: 14)),
-                          ],
-                        ),
-                      ],
+              child: Row(
+                children: [
+                  // Income
+                  Expanded(
+                    child: IncomeExpenseCard(
+                      icon: Icons.download,
+                      iconColor: Colors.green,
+                      title: "Income",
+                      amount: "RM5000.00",
                     ),
-                    const SizedBox(height: 20),
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(8)),
-                          child: Icon(Icons.upload, color: Colors.red),
-                        ),
-                        const SizedBox(width: 15),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              "Expense",
-                              style: GoogleFonts.montserrat(
-                                  color: Colors.white,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold),
-                            ),
-                            const SizedBox(height: 10),
-                            Text("RM3000.00",
-                                style: GoogleFonts.montserrat(
-                                    color: Colors.white, fontSize: 14)),
-                          ],
-                        ),
-                      ],
+                  ),
+                  const SizedBox(width: 16),
+                  // Expense
+                  Expanded(
+                    child: IncomeExpenseCard(
+                      icon: Icons.upload,
+                      iconColor: Colors.red,
+                      title: "Expense",
+                      amount: "RM3000.00",
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
 
+            // Transactions Title
             Padding(
               padding: const EdgeInsets.all(16),
               child: Text(
@@ -153,6 +110,60 @@ class _HomePageState extends State<HomePage> {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+// Custom Widget for Income & Expense Card
+class IncomeExpenseCard extends StatelessWidget {
+  final IconData icon;
+  final Color iconColor;
+  final String title;
+  final String amount;
+
+  const IncomeExpenseCard({
+    super.key,
+    required this.icon,
+    required this.iconColor,
+    required this.title,
+    required this.amount,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+          color: Colors.grey, borderRadius: BorderRadius.circular(16)),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+                color: Colors.white, borderRadius: BorderRadius.circular(8)),
+            child: Icon(icon, color: iconColor),
+          ),
+          const SizedBox(width: 15),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: GoogleFonts.montserrat(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                amount,
+                style:
+                    GoogleFonts.montserrat(color: Colors.white, fontSize: 14),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
