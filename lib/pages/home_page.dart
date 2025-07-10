@@ -1,121 +1,105 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-class HomePage extends StatefulWidget {
+class HomePage extends StatelessWidget {
   const HomePage({super.key});
 
   @override
-  State<HomePage> createState() => _HomePageState();
-}
-
-class _HomePageState extends State<HomePage> {
-  @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      child: SafeArea(
-        child: Column(
-          children: [
-            // Income & Expense Section
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                children: [
-                  // Income
-                  Expanded(
-                    child: IncomeExpenseCard(
-                      icon: Icons.download,
-                      iconColor: Colors.green,
-                      title: "Income",
-                      amount: "RM5000.00",
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  // Expense
-                  Expanded(
-                    child: IncomeExpenseCard(
-                      icon: Icons.upload,
-                      iconColor: Colors.red,
-                      title: "Expense",
-                      amount: "RM3000.00",
-                    ),
-                  ),
-                ],
+    return Scaffold(
+      body: SafeArea(
+        child: SingleChildScrollView(
+          child: Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Color(0xFFe0f7e9), Color(0xFFd0f0c0)],
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
               ),
             ),
-
-            // Transactions Title
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Text(
-                "Transactions",
-                style: GoogleFonts.montserrat(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold),
-              ),
-            ),
-
-            // Transaction 1
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Card(
-                elevation: 10,
-                child: ListTile(
-                  leading: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(8)),
-                    child: Icon(Icons.upload, color: Colors.red),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Categories Title
+                Padding(
+                  padding: const EdgeInsets.only(
+                      left: 16, right: 16, top: 16, bottom: 8),
+                  child: Text(
+                    "Categories",
+                    style: GoogleFonts.montserrat(
+                      color: Colors.green[800],
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                  title: Text("RM100.00"),
-                  subtitle: Text("Food"),
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: const [
-                      Icon(Icons.delete),
-                      SizedBox(width: 10),
-                      Icon(Icons.edit),
+                ),
+
+                // Income & Expense Cards
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: IncomeExpenseCard(
+                          icon: Icons.download,
+                          iconColor: Colors.green,
+                          title: "Income",
+                          amount: "RM5000.00",
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: IncomeExpenseCard(
+                          icon: Icons.upload,
+                          iconColor: Colors.red,
+                          title: "Expense",
+                          amount: "RM3000.00",
+                        ),
+                      ),
                     ],
                   ),
                 ),
-              ),
-            ),
 
-            // Transaction 2
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Card(
-                elevation: 10,
-                child: ListTile(
-                  leading: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(8)),
-                    child: Icon(Icons.download, color: Colors.green),
-                  ),
-                  title: Text("RM8000.00"),
-                  subtitle: Text("Salary"),
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: const [
-                      Icon(Icons.delete),
-                      SizedBox(width: 10),
-                      Icon(Icons.edit),
-                    ],
+                const SizedBox(height: 20),
+
+                // Transactions Title
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Text(
+                    "Transactions",
+                    style: GoogleFonts.montserrat(
+                      color: Colors.green[800],
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
-              ),
+
+                const SizedBox(height: 10),
+
+                // Transaction Cards
+                TransactionCard(
+                  icon: Icons.upload,
+                  iconColor: Colors.red,
+                  amount: "RM100.00",
+                  category: "Food",
+                ),
+                TransactionCard(
+                  icon: Icons.download,
+                  iconColor: Colors.green,
+                  amount: "RM8000.00",
+                  category: "Salary",
+                ),
+                const SizedBox(height: 20),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
   }
 }
 
-// Custom Widget for Income & Expense Card
 class IncomeExpenseCard extends StatelessWidget {
   final IconData icon;
   final Color iconColor;
@@ -134,14 +118,27 @@ class IncomeExpenseCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(20),
+      margin: const EdgeInsets.only(top: 8, bottom: 8),
       decoration: BoxDecoration(
-          color: Colors.grey, borderRadius: BorderRadius.circular(16)),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: iconColor.withOpacity(0.2), width: 2),
+        boxShadow: [
+          BoxShadow(
+            color: iconColor.withOpacity(0.05),
+            blurRadius: 6,
+            offset: const Offset(2, 4),
+          ),
+        ],
+      ),
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(8),
+            padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-                color: Colors.white, borderRadius: BorderRadius.circular(8)),
+              color: iconColor.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(10),
+            ),
             child: Icon(icon, color: iconColor),
           ),
           const SizedBox(width: 15),
@@ -151,19 +148,87 @@ class IncomeExpenseCard extends StatelessWidget {
               Text(
                 title,
                 style: GoogleFonts.montserrat(
-                    color: Colors.white,
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold),
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 6),
               Text(
                 amount,
-                style:
-                    GoogleFonts.montserrat(color: Colors.white, fontSize: 14),
+                style: GoogleFonts.montserrat(
+                  fontSize: 16,
+                  color: Colors.black,
+                ),
               ),
             ],
-          ),
+          )
         ],
+      ),
+    );
+  }
+}
+
+class TransactionCard extends StatelessWidget {
+  final IconData icon;
+  final Color iconColor;
+  final String amount;
+  final String category;
+
+  const TransactionCard({
+    super.key,
+    required this.icon,
+    required this.iconColor,
+    required this.amount,
+    required this.category,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: iconColor.withOpacity(0.3), width: 1.5),
+          boxShadow: [
+            BoxShadow(
+              color: iconColor.withOpacity(0.05),
+              blurRadius: 6,
+              offset: const Offset(2, 4),
+            ),
+          ],
+        ),
+        child: ListTile(
+          leading: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: iconColor.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, color: iconColor),
+          ),
+          title: Text(
+            amount,
+            style: GoogleFonts.montserrat(
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
+            ),
+          ),
+          subtitle: Text(
+            category,
+            style: GoogleFonts.montserrat(),
+          ),
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: const [
+              Icon(Icons.delete, color: Colors.redAccent),
+              SizedBox(width: 10),
+              Icon(Icons.edit, color: Colors.orange),
+            ],
+          ),
+        ),
       ),
     );
   }
