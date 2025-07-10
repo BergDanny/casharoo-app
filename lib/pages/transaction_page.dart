@@ -10,7 +10,7 @@ class TransactionPage extends StatefulWidget {
 
 class _TransactionPageState extends State<TransactionPage> {
   bool isExpense = true;
-  List<String> list = ['Makan', 'Transport', 'Skincare'];
+  List<String> list = ['Utilities', 'Transport', 'Skincare','Groceries','Entertaiment',];
   late String dropDownValue = list[0];
   DateTime? selectedDate;
   final TextEditingController _dateController = TextEditingController();
