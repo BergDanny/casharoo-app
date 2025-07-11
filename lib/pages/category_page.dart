@@ -1,4 +1,6 @@
 import 'dart:math';
+import 'package:casharoo_app/services/firestore.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -13,12 +15,12 @@ class _CategoryPageState extends State<CategoryPage>
     with SingleTickerProviderStateMixin {
   bool isExpense = true;
   late AnimationController _animationController;
-
-  List<String> expenseCategories = ['Gift'];
-  List<String> incomeCategories = ['Pocket Money'];
+  final FirestoreService firestoreService = FirestoreService();
 
   TextEditingController nameController = TextEditingController();
-  int? editingIndex;
+  String? editingDocId;
+
+  String get currentType => isExpense ? 'Expense' : 'Income';
 
   @override
   void initState() {
@@ -46,15 +48,13 @@ class _CategoryPageState extends State<CategoryPage>
     );
   }
 
-  void openDialog({bool isEdit = false, int? index}) {
-    if (isEdit && index != null) {
-      nameController.text = isExpense
-          ? expenseCategories[index]
-          : incomeCategories[index];
-      editingIndex = index;
+  void openDialog({bool isEdit = false, String? docId, String? categoryName}) {
+    if (isEdit && docId != null && categoryName != null) {
+      nameController.text = categoryName;
+      editingDocId = docId;
     } else {
       nameController.clear();
-      editingIndex = null;
+      editingDocId = null;
     }
 
     showDialog(
@@ -62,7 +62,9 @@ class _CategoryPageState extends State<CategoryPage>
       builder: (context) {
         return AlertDialog(
           backgroundColor: isExpense ? Colors.red[50] : Colors.green[50],
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -90,28 +92,27 @@ class _CategoryPageState extends State<CategoryPage>
               ),
               const SizedBox(height: 16),
               ElevatedButton(
-                onPressed: () {
+                onPressed: () async {
                   if (nameController.text.trim().isEmpty) return;
 
-                  setState(() {
-                    if (isEdit && editingIndex != null) {
-                      if (isExpense) {
-                        expenseCategories[editingIndex!] = nameController.text;
-                      } else {
-                        incomeCategories[editingIndex!] = nameController.text;
-                      }
+                  try {
+                    if (isEdit && editingDocId != null) {
+                      await firestoreService.updateCategory(
+                        editingDocId!,
+                        nameController.text.trim(),
+                      );
                       showPopup("Updated successfully", Colors.orange);
                     } else {
-                      if (isExpense) {
-                        expenseCategories.add(nameController.text);
-                      } else {
-                        incomeCategories.add(nameController.text);
-                      }
+                      await firestoreService.addCategory(
+                        nameController.text.trim(),
+                        currentType,
+                      );
                       showPopup("Added successfully", Colors.green);
                     }
-                  });
-
-                  Navigator.pop(context);
+                    Navigator.pop(context);
+                  } catch (e) {
+                    showPopup("Error: $e", Colors.red);
+                  }
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor:
@@ -130,15 +131,13 @@ class _CategoryPageState extends State<CategoryPage>
     );
   }
 
-  void deleteCategory(int index) {
-    setState(() {
-      if (isExpense) {
-        expenseCategories.removeAt(index);
-      } else {
-        incomeCategories.removeAt(index);
-      }
-    });
-    showPopup("Deleted successfully", Colors.redAccent);
+  void deleteCategory(String docId) async {
+    try {
+      await firestoreService.deleteCategory(docId);
+      showPopup("Deleted successfully", Colors.redAccent);
+    } catch (e) {
+      showPopup("Error deleting: $e", Colors.red);
+    }
   }
 
   @override
@@ -147,7 +146,6 @@ class _CategoryPageState extends State<CategoryPage>
     final headerColor = isExpense ? Colors.red[100]! : Colors.green[100]!;
     final iconColor = isExpense ? Colors.red : Colors.green;
     final textColor = isExpense ? Colors.red[800]! : Colors.green[800]!;
-    final categories = isExpense ? expenseCategories : incomeCategories;
 
     return Scaffold(
       backgroundColor: backgroundColor,
@@ -165,105 +163,185 @@ class _CategoryPageState extends State<CategoryPage>
               );
             },
           ),
-          SafeArea(
-            child: Column(
-              children: [
-                // Standard Header (no curve)
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-                  color: headerColor,
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        isExpense ? "Expense" : "Income",
+          Column(
+            children: [
+              // Header with switch and add button
+              Container(
+                width: double.infinity,
+                padding: EdgeInsets.only(
+                  top: MediaQuery.of(context).padding.top + 16,
+                  left: 16,
+                  right: 16,
+                  bottom: 16,
+                ),
+                color: headerColor,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        isExpense ? "Expense Categories" : "Income Categories",
                         style: GoogleFonts.montserrat(
-                          fontSize: 26,
+                          fontSize: 18,
                           fontWeight: FontWeight.bold,
                           color: textColor,
                         ),
                       ),
-                      Row(
-                        children: [
-                          Switch(
-                            value: isExpense,
-                            onChanged: (value) =>
-                                setState(() => isExpense = value),
-                            activeColor: Colors.red,
-                            inactiveTrackColor: Colors.green[200],
-                            inactiveThumbColor: Colors.green[600],
-                          ),
-                          IconButton(
-                            onPressed: () => openDialog(),
-                            icon: const Icon(Icons.add_circle),
-                            color: iconColor,
-                            iconSize: 30,
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
+                    ),
+                    Row(
+                      children: [
+                        Switch(
+                          value: isExpense,
+                          onChanged:
+                              (value) => setState(() => isExpense = value),
+                          activeColor: Colors.red,
+                          inactiveTrackColor: Colors.green[200],
+                          inactiveThumbColor: Colors.green[600],
+                        ),
+                        const SizedBox(width: 8),
+                        IconButton(
+                          onPressed: () => openDialog(),
+                          icon: const Icon(Icons.add_circle),
+                          color: iconColor,
+                          iconSize: 28,
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 20),
-                // Category Cards
-                Expanded(
-                  child: ListView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    itemCount: categories.length,
-                    itemBuilder: (context, index) {
-                      return Container(
-                        margin: const EdgeInsets.only(bottom: 12),
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                              color: iconColor.withOpacity(0.3), width: 2),
-                          boxShadow: [
-                            BoxShadow(
-                              color: iconColor.withOpacity(0.1),
-                              blurRadius: 6,
-                              offset: const Offset(2, 4),
+              ),
+              const SizedBox(height: 20),
+              // Category Cards with StreamBuilder
+              Expanded(
+                child: StreamBuilder<QuerySnapshot>(
+                  stream: firestoreService.getCategories(currentType),
+                  builder: (context, snapshot) {
+                    if (snapshot.hasError) {
+                      return Center(
+                        child: Text(
+                          'Error: ${snapshot.error}',
+                          style: GoogleFonts.montserrat(),
+                        ),
+                      );
+                    }
+
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+
+                    if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                      return Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.category_outlined,
+                              size: 64,
+                              color: iconColor.withOpacity(0.5),
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              'No ${currentType.toLowerCase()} categories yet',
+                              style: GoogleFonts.montserrat(
+                                fontSize: 18,
+                                color: textColor.withOpacity(0.7),
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Tap the + button to add one',
+                              style: GoogleFonts.montserrat(
+                                fontSize: 14,
+                                color: textColor.withOpacity(0.5),
+                              ),
                             ),
                           ],
                         ),
-                        child: ListTile(
-                          leading: Icon(
-                            isExpense ? Icons.upload : Icons.download,
-                            color: iconColor,
-                            size: 28,
-                          ),
-                          title: Text(
-                            categories[index],
-                            style: GoogleFonts.montserrat(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w500,
+                      );
+                    }
+
+                    return ListView.builder(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      itemCount: snapshot.data!.docs.length,
+                      itemBuilder: (context, index) {
+                        // Sort documents by name on client side
+                        List<DocumentSnapshot> sortedDocs =
+                            snapshot.data!.docs.toList();
+                        sortedDocs.sort((a, b) {
+                          Map<String, dynamic> dataA =
+                              a.data() as Map<String, dynamic>;
+                          Map<String, dynamic> dataB =
+                              b.data() as Map<String, dynamic>;
+                          return dataA['name'].toString().compareTo(
+                            dataB['name'].toString(),
+                          );
+                        });
+
+                        DocumentSnapshot document = sortedDocs[index];
+                        String docID = document.id;
+                        Map<String, dynamic> data =
+                            document.data() as Map<String, dynamic>;
+                        String categoryName = data['name'];
+
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 12),
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: iconColor.withOpacity(0.3),
+                              width: 2,
                             ),
-                          ),
-                          trailing: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              IconButton(
-                                onPressed: () =>
-                                    openDialog(isEdit: true, index: index),
-                                icon: const Icon(Icons.edit),
-                                color: Colors.orange,
-                              ),
-                              IconButton(
-                                onPressed: () => deleteCategory(index),
-                                icon: const Icon(Icons.delete),
-                                color: Colors.redAccent,
+                            boxShadow: [
+                              BoxShadow(
+                                color: iconColor.withOpacity(0.1),
+                                blurRadius: 6,
+                                offset: const Offset(2, 4),
                               ),
                             ],
                           ),
-                        ),
-                      );
-                    },
-                  ),
+                          child: ListTile(
+                            leading: Icon(
+                              isExpense ? Icons.upload : Icons.download,
+                              color: iconColor,
+                              size: 28,
+                            ),
+                            title: Text(
+                              categoryName,
+                              style: GoogleFonts.montserrat(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                IconButton(
+                                  onPressed:
+                                      () => openDialog(
+                                        isEdit: true,
+                                        docId: docID,
+                                        categoryName: categoryName,
+                                      ),
+                                  icon: const Icon(Icons.edit),
+                                  color: Colors.orange,
+                                ),
+                                IconButton(
+                                  onPressed: () => deleteCategory(docID),
+                                  icon: const Icon(Icons.delete),
+                                  color: Colors.redAccent,
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    );
+                  },
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ],
       ),
@@ -279,15 +357,17 @@ class BubblePainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = (isExpense ? Colors.redAccent : Colors.greenAccent)
-          .withOpacity(0.1)
-      ..style = PaintingStyle.fill;
+    final paint =
+        Paint()
+          ..color = (isExpense ? Colors.redAccent : Colors.greenAccent)
+              .withOpacity(0.1)
+          ..style = PaintingStyle.fill;
 
     for (int i = 0; i < 10; i++) {
       final radius = 30.0 + (i * 3);
       final dx = size.width * (i / 10);
-      final dy = size.height / 2 +
+      final dy =
+          size.height / 2 +
           sin((animationValue * 2 * pi) + i) * 100; // up-down wave motion
       canvas.drawCircle(Offset(dx, dy), radius, paint);
     }

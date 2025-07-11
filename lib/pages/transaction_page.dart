@@ -1,5 +1,8 @@
+import 'package:casharoo_app/services/firestore.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
 
 class TransactionPage extends StatefulWidget {
   const TransactionPage({super.key});
@@ -9,36 +12,24 @@ class TransactionPage extends StatefulWidget {
 }
 
 class _TransactionPageState extends State<TransactionPage> {
+  // Firestore
+  final FirestoreService firestoreService = FirestoreService();
+
   bool isExpense = true;
-  List<String> list = ['Utilities', 'Transport', 'Skincare','Groceries','Entertaiment',];
-  late String dropDownValue = list[0];
-  DateTime? selectedDate;
-  final TextEditingController _dateController = TextEditingController();
-  final TextEditingController _amountController = TextEditingController();
+  String? selectedCategory;
 
-  Future<void> _selectDate(BuildContext context) async {
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: selectedDate ?? DateTime.now(),
-      firstDate: DateTime(2020),
-      lastDate: DateTime(2101),
-    );
-    if (picked != null && picked != selectedDate) {
-      setState(() {
-        selectedDate = picked;
-        _dateController.text = "${picked.day}/${picked.month}/${picked.year}";
-      });
-    }
-  }
+  // Controller
+  TextEditingController amountController = TextEditingController();
+  TextEditingController dateController = TextEditingController();
 
-  void _showSnackBar(String message, Color color) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message, style: GoogleFonts.montserrat()),
-        backgroundColor: color,
-        duration: const Duration(seconds: 2),
-      ),
-    );
+  // Get current category type
+  String get currentType => isExpense ? 'Expense' : 'Income';
+
+  @override
+  void initState() {
+    super.initState();
+    // Removed automatic default category initialization
+    // Users will start with empty categories and can add their own
   }
 
   @override
@@ -78,6 +69,8 @@ class _TransactionPageState extends State<TransactionPage> {
                       onChanged: (bool value) {
                         setState(() {
                           isExpense = value;
+                          selectedCategory =
+                              null; // Reset category when switching
                         });
                       },
                       inactiveTrackColor: Colors.green[200],
@@ -96,7 +89,7 @@ class _TransactionPageState extends State<TransactionPage> {
                 ),
                 const SizedBox(height: 20),
                 TextFormField(
-                  controller: _amountController,
+                  controller: amountController,
                   keyboardType: TextInputType.number,
                   decoration: InputDecoration(
                     labelText: "Amount",
@@ -115,7 +108,7 @@ class _TransactionPageState extends State<TransactionPage> {
                     fontSize: 16,
                     fontWeight: FontWeight.w500,
                     color: textColor,
-                    ),
+                  ),
                 ),
                 const SizedBox(height: 8),
                 Container(
@@ -123,29 +116,76 @@ class _TransactionPageState extends State<TransactionPage> {
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: iconColor.withOpacity(0.3), width: 2),
+                    border: Border.all(
+                      color: iconColor.withOpacity(0.3),
+                      width: 2,
+                    ),
                   ),
-                  child: DropdownButton<String>(
-                    value: dropDownValue,
-                    isExpanded: true,
-                    underline: const SizedBox(),
-                    icon: const Icon(Icons.arrow_drop_down),
-                    items: list.map<DropdownMenuItem<String>>((String value) {
-                      return DropdownMenuItem<String>(
-                        value: value,
-                        child: Text(value),
+                  child: StreamBuilder<QuerySnapshot>(
+                    stream: firestoreService.getCategories(currentType),
+                    builder: (context, snapshot) {
+                      if (snapshot.hasError) {
+                        return Text('Error loading categories');
+                      }
+
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const CircularProgressIndicator();
+                      }
+
+                      List<String> categories = [];
+                      if (snapshot.hasData) {
+                        categories =
+                            snapshot.data!.docs
+                                .map(
+                                  (doc) => doc.data() as Map<String, dynamic>,
+                                )
+                                .map((data) => data['name'] as String)
+                                .toList();
+                      }
+
+                      // Reset selected category if it's not in the current list
+                      if (selectedCategory != null &&
+                          !categories.contains(selectedCategory)) {
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          setState(() {
+                            selectedCategory = null;
+                          });
+                        });
+                      }
+
+                      return DropdownButton<String>(
+                        value: selectedCategory,
+                        hint: Text(
+                          'Select Category',
+                          style: GoogleFonts.montserrat(),
+                        ),
+                        isExpanded: true,
+                        underline: const SizedBox(),
+                        icon: const Icon(Icons.arrow_drop_down),
+                        items:
+                            categories.map<DropdownMenuItem<String>>((
+                              String value,
+                            ) {
+                              return DropdownMenuItem<String>(
+                                value: value,
+                                child: Text(
+                                  value,
+                                  style: GoogleFonts.montserrat(),
+                                ),
+                              );
+                            }).toList(),
+                        onChanged: (String? newValue) {
+                          setState(() {
+                            selectedCategory = newValue;
+                          });
+                        },
                       );
-                    }).toList(),
-                    onChanged: (String? newValue) {
-                      setState(() {
-                        dropDownValue = newValue!;
-                      });
                     },
                   ),
                 ),
                 const SizedBox(height: 20),
                 TextField(
-                  controller: _dateController,
+                  controller: dateController,
                   readOnly: true,
                   decoration: InputDecoration(
                     labelText: "Enter Date",
@@ -157,23 +197,70 @@ class _TransactionPageState extends State<TransactionPage> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  onTap: () => _selectDate(context),
+                  onTap: () async {
+                    DateTime? pickedDate = await showDatePicker(
+                      context: context,
+                      initialDate: DateTime.now(),
+                      firstDate: DateTime(2023),
+                      lastDate: DateTime(2099),
+                    );
+
+                    if (pickedDate != null) {
+                      String formattedDate = DateFormat(
+                        'dd/MM/yyyy',
+                      ).format(pickedDate);
+
+                      dateController.text = formattedDate;
+                    }
+                  },
                 ),
                 const SizedBox(height: 30),
                 Center(
                   child: ElevatedButton(
-                    onPressed: () {
-                      _showSnackBar("Transaction Saved Successfully!", iconColor);
+                    onPressed: () async {
+                      if (amountController.text.isNotEmpty &&
+                          selectedCategory != null &&
+                          dateController.text.isNotEmpty) {
+                        try {
+                          int amount = int.parse(amountController.text);
+                          String type = isExpense ? "Expense" : "Income";
+
+                          await firestoreService.addTransaction(
+                            amount,
+                            selectedCategory!,
+                            dateController.text,
+                            type,
+                          );
+
+                          Navigator.pop(context);
+                        } catch (e) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Error saving transaction: $e'),
+                            ),
+                          );
+                        }
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Please fill all fields')),
+                        );
+                      }
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: iconColor,
                       foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 32,
+                        vertical: 14,
+                      ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16),
                       ),
                     ),
-                    child: Text("Save", style: GoogleFonts.montserrat(fontSize: 16)),
+                    child: Text(
+                      "Save",
+                      style: GoogleFonts.montserrat(fontSize: 16),
+                    ),
                   ),
                 ),
               ],

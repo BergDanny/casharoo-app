@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "10744663886",
+    "project_id": "casharoo-app",
+    "storage_bucket": "casharoo-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:10744663886:android:011039b593935782d0581f",
+        "android_client_info": {
+          "package_name": "com.example.casharoo_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC-FEl-fEntRCzX1RY7s9kvT3P7YmT_R4s"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:10744663886:android:bdad31a4f61d4eb5d0581f",
+        "android_client_info": {
+          "package_name": "com.example.learn_flutter"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC-FEl-fEntRCzX1RY7s9kvT3P7YmT_R4s"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
